@@ -7,6 +7,8 @@
     d dw 0
 .code
 main proc 
+    mov AX, @data
+    mov DS, AX
     ;<readABCD>
     mov a,10
     mov AX, a
@@ -40,7 +42,8 @@ main proc
     ;<print>
    
     f1:
-   
+    mov AH, 4Ch
+    int 21h
 main endp
 end main
     
