@@ -11,7 +11,8 @@ main proc
     mov a,10
     mov AX, a
     add AX, b
-    xor AX, c
+    
+    AX, c
     cmp AX, d
     jz t1
     mov CX, d
@@ -21,8 +22,6 @@ main proc
     ;<print>
     jmp f1
     t1:
-    xor AX,AX
-    cmp AX,1
     mov AX, d
     sub AX, b
     mov DX, a
