@@ -52,33 +52,23 @@ readData proc
     jz zerot
     push DX
     power:
-    mul BX ; ERROR 2560
+    mul BX 
     loop power
     pop DX
-    ;counter = 0
+    ;countertotal - counter = 0
     zerot:
     
     pop CX
     xor CH, CH
-    ;push DX
-    ;push AX
-    ;mov AH, 02h
-    ;mov DL, CL
-    ;int 21h
-    ;pop AX
-    ;pop DX
-    ;call printNumber
     sub CX, '0'
     push DX
     mul CX
     pop DX
     add DX, AX
     mov AX, DX
-    ;
-    
     dec counter
     jmp numberloop
-    ;minus sign handling
+    ;(-)handling
     minussign:
     cmp counter, 0
     jnz endpr
@@ -87,7 +77,7 @@ readData proc
   
     inc negative
     jmp cycle
-    
+    ;error 
     endpr:
     mov DX, offset msg
     mov AH, 09
@@ -107,7 +97,6 @@ readData proc
     mov CX, -1
     mul CX
     mov DX, AX
-    ;add DX, 32768
     endproc:
     ret
 readData endp
@@ -125,7 +114,6 @@ printNumber proc
     jns positiveprint
     mov CX, -1
     mul CX
-    ;sub AX, 32768
     push AX
     push DX
     mov AH, 02h
@@ -173,10 +161,9 @@ main proc
     mov BX, b
     mov CX, c
     mov DX, d
-    call printNumber
-    jmp stop;stop
+    
     cmp AX, BX
-    jc false1
+    jl false1
    
     sub CX, DX
     add CX, AX
@@ -189,31 +176,101 @@ main proc
     mov BX, b
     mov CX, c
     mov DX, d
-    sub AX, BX
-  
-    ; 
-    ;error
-    push AX
-    mov AX, CX
-    div DX
-    pop CX
-    ;
- 
-    cmp CX, AX
-    jnc false2
-    mov AX, a
-    mov BX, b
+    
+    
+    and CX, DX
     mov CX, c
-    mov DX, d
+    js ct
+    
+    or CX,DX
+    mov CX, c
+    jns ct
+    
+   
+    test CX, CX
+    jns ntest2 
+    ; CX
+    push AX
+    push DX
+    mov AX, CX
+    xor DX,DX
+    mov CX, -1
+    mul CX
+    mov CX, AX
+    pop DX
+    pop AX
+    jmp calcdiv
+    ntest2: ;DX
+    push AX
+    push CX
+    mov AX, DX
+    mov CX, -1
+    mul CX
+    mov DX, AX
+    pop CX
+    pop AX
+    calcdiv:; (c / d):
+    
+    mov AX, CX
+    
+    mov CX, DX
+    xor DX, DX
+    div CX
+  
+    push DX
+    mov CX, -1
+    mul CX
+    pop DX
+    push AX
+    mov AX, DX
+    mul CX
+    mov DX, AX
+    pop AX
+  
+    ; -7 / 2 AX=-3 DX = -1
+    jmp calc2
+    
+    ct:
+    sub AX, BX
     push AX
     mov AX, CX
+    
+    mov CX, DX
+    xor DX, DX
+    div CX
     pop CX
+    calc2:
+    push AX
+    mov CX, a
+    mov BX, b
+    sub CX, BX
+    pop AX
+    cmp CX, AX ;still works
+    jg false2
+    
+    cmp CX, AX
+    jnz state2
+    cmp DX, 0
+    jl false2
+    
+    state2:
+    ;
+    
+    mov CX, a
+    mov BX, b
+    mov AX, c
+   
+    xor DX, DX
     div CX
     sub BX, DX
     mov AX, BX 
+    
+    ;
+    
     call printNumber; print(b - (c % a))
     jmp stop
     false2:
+    
     mov AX, a
     mov BX, b
     mov CX, c
