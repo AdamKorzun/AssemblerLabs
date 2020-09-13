@@ -53,13 +53,18 @@ readData proc
     mov BL, 10
     cmp CX, 0
     jz zerot
+    push DX
     power:
-    mul BL
+    mul BX
     loop power
+    pop DX
     zerot:
     pop CX
-    sub CL, '0'
-    mul CL
+    xor CH, CH
+    sub CX, '0'
+    push DX
+    mul CX
+    pop DX
     add DX, AX
     dec counter
     jmp numberloop

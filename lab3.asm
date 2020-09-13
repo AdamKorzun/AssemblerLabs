@@ -7,17 +7,21 @@
     d dw 0
     counter dw 0
     countertotal dw 0
+    negative db 0
     msg db 13, 10, 'Bad input$'
 .code
 readData proc
+    
     mov counter,0
     cycle:
     mov AH, 01h
     int 21h
-    cmp AL, 13
+    cmp AL, 13 ;enter
     jz entert
-    cmp AL, 08
+    cmp AL, 08 ;backspace
     jz backspacet
+    cmp AL, 45 ;-
+    jz minussign
     cmp AL, '9' + 1
     jnc endpr
     cmp AL, '0' - 1
@@ -43,24 +47,47 @@ readData proc
     mov CX, countertotal
     sub CX, counter
     mov AX, 1
-    mov BL, 10
+    mov BX, 10
     cmp CX, 0
     jz zerot
     push DX
     power:
-    mul BL
+    mul BX ; ERROR 2560
     loop power
     pop DX
+    ;counter = 0
     zerot:
+    
     pop CX
     xor CH, CH
+    ;push DX
+    ;push AX
+    ;mov AH, 02h
+    ;mov DL, CL
+    ;int 21h
+    ;pop AX
+    ;pop DX
+    ;call printNumber
     sub CX, '0'
     push DX
     mul CX
     pop DX
     add DX, AX
+    mov AX, DX
+    ;
+    
     dec counter
     jmp numberloop
+    ;minus sign handling
+    minussign:
+    cmp counter, 0
+    jnz endpr
+    cmp negative, 1
+    jz endpr
+  
+    inc negative
+    jmp cycle
+    
     endpr:
     mov DX, offset msg
     mov AH, 09
@@ -68,6 +95,20 @@ readData proc
     mov AH, 76
     int 21h
     final:
+   
+    cmp negative, 1
+    jnz endproc
+    
+    
+    mov negative, 0
+    
+    mov AX, DX
+    
+    mov CX, -1
+    mul CX
+    mov DX, AX
+    ;add DX, 32768
+    endproc:
     ret
 readData endp
 printData proc
@@ -78,26 +119,43 @@ printData proc
     ret
 printData endp
 printNumber proc
+    push AX 
+    push DX
+    test AX, AX
+    jns positiveprint
+    mov CX, -1
+    mul CX
+    ;sub AX, 32768
+    push AX
+    push DX
+    mov AH, 02h
+    mov DL, '-'
+    int 21h
+    pop DX
+    pop AX
+    positiveprint:
     xor CX, CX
     xor BL, BL
-    mov BL, 10
+    mov BX, 10
     division:
-    div BL
-
-    push AX
+    xor DX, DX
+    div BX
+    push DX
     inc CX
-    cmp AL, 0
-    mov AH, 0
+    cmp AX, 0
+    mov DX, 0
     jnz division
     printing:
     pop DX
-    mov AH, DH
+    mov AH, DL
     xor DX, DX
     mov DL, AH
     add DL, '0'
     mov AH, 02h
     int 21h
     loop printing
+    pop DX
+    pop AX
     ret
 printNumber endp
 main proc
@@ -115,51 +173,56 @@ main proc
     mov BX, b
     mov CX, c
     mov DX, d
-    and BX, AX
-    and DX, CX
-    cmp BX, DX
-    jz true1
-    mov AX, a
-    mov BX, b
-    mov CX, c
-    mov DX, d
-    xor AX, BX
-    or CX, DX
-    cmp AX, CX
-    jz true2
-    mov AX, a
-    mov BX, b
-    mov CX, c
-    mov DX, d
-    and AX, DX
-    xor BX, CX
-    or AX, BX
     call printNumber
-    jmp endprogram
-    ;print (a & d) | (b ^ c)
-    true2:
+    jmp stop;stop
+    cmp AX, BX
+    jc false1
+   
+    sub CX, DX
+    add CX, AX
+    mov AX, CX
+    call printNumber ;print((c - d) + a)
+    jmp stop
+    false1:
+   
     mov AX, a
     mov BX, b
     mov CX, c
     mov DX, d
-    xor BX, AX
-    add CX, DX
-    and BX, CX
-    mov AX, BX
-    call printNumber
-    ;print (b ^ a) & (c + d)
-    jmp endprogram
-    true1:
+    sub AX, BX
+  
+    ; 
+    ;error
+    push AX
+    mov AX, CX
+    div DX
+    pop CX
+    ;
+ 
+    cmp CX, AX
+    jnc false2
     mov AX, a
     mov BX, b
     mov CX, c
     mov DX, d
-    or AX, BX
-    or CX, DX
-    and AX, CX
-    call printNumber
-    ;print (a | b) & (c | d)
-    endprogram:
+    push AX
+    mov AX, CX
+    pop CX
+    div CX
+    sub BX, DX
+    mov AX, BX 
+    call printNumber; print(b - (c % a))
+    jmp stop
+    false2:
+    mov AX, a
+    mov BX, b
+    mov CX, c
+    mov DX, d
+    sub AX, DX
+    sub CX, AX
+    mov AX, CX
+    call printNumber ;print(c - (a - d))
+    stop:
     mov AH, 4Ch
     int 21h
 main endp
