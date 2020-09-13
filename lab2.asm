@@ -78,26 +78,30 @@ printData proc
     ret
 printData endp
 printNumber proc
-    xor CX, CX
-    xor BL, BL
-    mov BL, 10
-    division:
-    div BL
-
     push AX
+    push DX
+    xor CX, CX
+    mov BX, 10
+    division:
+    xor DX, DX
+    div BX
+
+    push DX
     inc CX
-    cmp AL, 0
-    mov AH, 0
+    cmp AX, 0
+    mov DX, 0
     jnz division
     printing:
     pop DX
-    mov AH, DH
+    mov AH, DL
     xor DX, DX
     mov DL, AH
     add DL, '0'
     mov AH, 02h
     int 21h
     loop printing
+    pop DX
+    pop AX
     ret
 printNumber endp
 main proc
