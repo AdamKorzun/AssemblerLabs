@@ -9,6 +9,7 @@
     countertotal dw 0
     negative db 0
     msg db 13, 10, 'Bad input$'
+    zeroerror db 13,10, 'Zero division$'
 .code
 readData proc
     
@@ -161,7 +162,20 @@ main proc
     mov BX, b
     mov CX, c
     mov DX, d
-    
+    cmp AX, 0
+    jnz notzero1
+    mov DX, offset zeroerror
+    mov AH, 09
+    int 21h
+    jmp stop
+    notzero1:
+    cmp DX, 0
+    jnz notzero2
+    mov DX, offset zeroerror
+    mov AH, 09
+    int 21h
+    jmp stop
+    notzero2:
     cmp AX, BX
     jl false1
    
