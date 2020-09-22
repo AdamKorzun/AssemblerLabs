@@ -114,9 +114,7 @@ main proc
     mov c, DX
     call readData
     mov d, DX
-    ;<readABCD>
-    mov AX, 1000
-    call printNumber
+    
     
    
     mov AX, a
@@ -129,7 +127,7 @@ main proc
     and CX, c
     mov AX, b
     add AX, CX
-    ;<print>
+    
     call printNumber
     jmp f1
     t1:
@@ -142,14 +140,14 @@ main proc
     mov AX, b
     add AX, c
     add AX, d
-    ;<print>
+    
     call printNumber
     jmp f1
     t2:
     mov AX, a
     add AX, b
     add AX, c
-    ;<print>
+    
     call printNumber
     f1:
     mov AH, 4Ch
