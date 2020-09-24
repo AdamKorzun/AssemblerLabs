@@ -17,7 +17,7 @@ readData proc
     cycle:
     mov AH, 01h
     int 21h
-    cmp AL, 13 ;enter
+    cmp AL, 10 ;enter
     jz entert
     cmp AL, 08 ;backspace
     jz backspacet
@@ -187,7 +187,16 @@ divnmod proc ; AX / CX, AX - div, CX - mod
     ret
     cnt2:
     mov BX, AX
-    idiv CX    
+    idiv CX 
+    cmp DX, 0
+    jnz c2
+    xor DX, DX
+    mov CX, DX
+    pop BX
+    pop DX
+    ret
+    c2:
+      
     sub AX, 1
     push AX
     mul CX
@@ -257,12 +266,8 @@ main proc
     pop CX
    
     cmp CX, AX 
-    jg false2
-    
-    cmp CX, AX
-    jnz state2
-    cmp DX, 0
-    jl false2
+    jge false2
+   
     
     state2:
     ;
