@@ -17,7 +17,7 @@ readData proc
     cycle:
     mov AH, 01h
     int 21h
-    cmp AL, 10 ;enter
+    cmp AL, 13 ;enter
     jz entert
     cmp AL, 08 ;backspace
     jz backspacet
@@ -266,8 +266,11 @@ main proc
     pop CX
    
     cmp CX, AX 
+    jg false2
+    cmp CX, AX
+    jl state2
+    cmp DX, 0
     jge false2
-   
     
     state2:
     ;
@@ -279,9 +282,6 @@ main proc
     call divnmod
     sub BX, CX
     mov AX, BX 
-    
-    
-    
     call printNumber; print(b - (c % a))
     jmp stop
     false2:
