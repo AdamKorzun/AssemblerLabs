@@ -17,7 +17,7 @@ readData proc
     cycle:
     mov AH, 01h
     int 21h
-    cmp AL, 13 ;enter
+    cmp AL, 10 ;enter
     jz entert
     cmp AL, 08 ;backspace
     jz backspacet
@@ -237,8 +237,9 @@ main proc
     int 21h
     jmp stop
     notzero2:
+    
     cmp AX, BX
-    jl false1
+    jle false1
    
     sub CX, DX
     add CX, AX
