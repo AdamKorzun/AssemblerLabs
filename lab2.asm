@@ -14,7 +14,7 @@ readData proc
     cycle:
     mov AH, 01h
     int 21h
-    cmp AL, 13
+    cmp AL, 10
     jz entert
     cmp AL, 08
     jz backspacet
