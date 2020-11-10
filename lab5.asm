@@ -6,7 +6,8 @@
     matrix_size dw 0
     negative db 0
     msg db 13, 10, 'Bad input$'
-    buffer db 100 dup (?)
+    buffer db 101 dup (?)
+    
 .code
 
 printData proc
@@ -27,7 +28,9 @@ readData proc
     int 21h
     cmp AL, 13 ;enter
     jz entert
-    cmp AL, 32 ;enter
+    cmp AL, 10 ;enter
+    jz entert
+    cmp AL, 32 ;space
     jz entert
     cmp AL, 08 ;backspace
     jz backspacet
@@ -126,7 +129,9 @@ readMatrix proc
     jc end_matrix
     enter_row:
     call readData
-    mov [SI], AH
+    mov [SI], AL
+    xor AX, AX
+    
     inc SI
     loop enter_row
     sub BX, 1
@@ -180,9 +185,123 @@ printNumber proc
     pop AX
     ret
 printNumber endp
-
-printArray proc
-printArray endp
+printMatrix proc
+    push AX
+    push CX
+    push BX
+    push DX
+    xor BX, BX
+    prMatrix:
+    cmp BX, matrix_size
+    jge stop_printing
+    mov CX, matrix_size
+    prRow:
+    mov AX, [SI]
+    xor AH, AH
+    call printNumber    
+    inc SI
+    mov DL, ' '
+    mov AH, 02h
+    int 21h
+    loop prRow
+    inc BX
+    mov DL, 10
+    mov AH, 02h
+    int 21h
+    jmp prMatrix
+    stop_printing:
+    pop DX
+    pop BX
+    pop CX
+    pop AX
+    ret
+printMatrix endp
+FloydWarshallAlgo proc
+    push AX
+    push BX
+    push CX
+    push DX
+    xor AX, AX
+    xor CX, CX
+    xor BX, BX
+    xor DX, DX
+    floop: ; first cycle
+    cmp DX, matrix_size ; DX == k
+    jge stop_algo
+    xor BX, BX
+    sloop: ; second cycle
+    cmp BX, matrix_size ; BX == i
+    jge floopk
+    xor CX, CX
+    tloop: ; third cycle
+    cmp CX, matrix_size ; CX == j
+    jge sloopi
+    ; start third cycle iteration
+    push DX
+    push CX
+    xor AX, AX
+    mov AL, BL
+    mul byte ptr[matrix_size]
+    add AL, CL ; AX = [BX][CX] index ([i][j])
+    xor AH, AH
+    
+    add SI, AX
+    push SI
+    ;xor DX, DX
+    push [SI] ; push buffer[BX][CX] == buffer[i][j]
+    
+    xor AX, AX
+    mov AL, BL
+    mul byte ptr[matrix_size]
+    add AL, DL ; AX = [BX][DX] index ([i][k])
+    mov SI, offset buffer
+    xor AH, AH
+    add SI, AX
+    push [SI] ; push buffer[BX][DX] == buffer[i][k]
+    
+    xor AX, AX
+    mov AL, DL
+    mul byte ptr[matrix_size]
+    add AL, CL ; AX = [DX][CX] index ([k][j])
+    mov SI, offset buffer
+    xor AH, AH
+    add SI, AX
+    xor AX, AX
+    mov AL, [SI]; AL = buffer[DX][CX] == buffer[k][j]
+    
+    xor DX, DX
+    pop DX
+    add AL, DL ; AL = buffer[k][j] + buffer[i][k]
+    xor DX, DX
+    pop DX
+    pop SI
+    cmp DL, AL
+    jnle cmp_g
+    ;mov [SI], DL  
+    jmp cmp_l
+    cmp_g:
+    mov [SI], AL
+    cmp_l:
+    pop CX
+    pop DX
+    mov SI, offset buffer
+    
+    ; stop third cycle iteration
+    inc CX
+    jmp tloop
+    sloopi:
+    inc BX
+    jmp sloop
+    floopk:
+    inc DX
+    jmp floop
+    stop_algo:
+    pop DX
+    pop CX
+    pop BX
+    pop AX
+    ret
+FloydWarshallAlgo endp
 main proc
     mov AX, @data
     mov DS, AX
@@ -190,6 +309,10 @@ main proc
     call readData
     mov matrix_size, AX
     call readMatrix
+    mov SI, offset buffer
+    call FloydWarshallAlgo
+    mov SI, offset buffer
+    call printMatrix
     mov AH, 4Ch
     int 21h
 main endp
