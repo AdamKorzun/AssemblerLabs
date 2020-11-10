@@ -227,18 +227,19 @@ FloydWarshallAlgo proc
     xor DX, DX
     floop: ; first cycle
     cmp DX, matrix_size ; DX == k
-    jge stop_algo
+    jnl stop_algo
     xor BX, BX
     sloop: ; second cycle
     cmp BX, matrix_size ; BX == i
-    jge floopk
+    jnl floopk
     xor CX, CX
     tloop: ; third cycle
     cmp CX, matrix_size ; CX == j
-    jge sloopi
+    jnl sloopi
     ; start third cycle iteration
     push DX
     push CX
+    push BX
     xor AX, AX
     mov AL, BL
     mul byte ptr[matrix_size]
@@ -276,12 +277,13 @@ FloydWarshallAlgo proc
     pop DX
     pop SI
     cmp DL, AL
-    jnle cmp_g
+    jnbe cmp_g
     ;mov [SI], DL  
     jmp cmp_l
     cmp_g:
     mov [SI], AL
     cmp_l:
+    pop BX
     pop CX
     pop DX
     mov SI, offset buffer
