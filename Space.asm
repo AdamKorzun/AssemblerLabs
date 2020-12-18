@@ -9,6 +9,7 @@
 ; invaders shooting
 ;   > random nubmer generator (+)
 .data
+    empty dw ?
     Playing db 1 ; game state
     InvadersLeft db 18
     TotalInvaders db 18
@@ -40,9 +41,31 @@
     ScreenWidth dw 320
     InvaderVerticalMovementSpeed dw 10
     RandomNumber db 0
+    InvaderShootFrames dw 100
+    LinePos dw 120 
+    LineFrames dw 100
+    old_9h dd 0
 .code
 
-
+drawLine proc 
+    pushf
+    cmp LineFrames, 0
+    je drLT
+    dec LineFrames
+    jmp stopDL
+    drLt:
+    mov LineFrames, 100
+    mov AH, 0Ch
+    mov AL, 0Fh
+    mov DX, LinePos
+    mov CX, ScreenWidth
+    drawL:
+    int 10h
+    loop drawL
+    stopDL:
+    popf
+    ret
+drawLine endp
 Shoot proc
     push AX
     push BX
@@ -117,7 +140,11 @@ drawBullet proc
     pop AX
     ret
 drawBullet endp
-
+    
+interruptHandler proc far
+    mov Playing, 0
+    iret
+interruptHandler endp
 drawInvader proc
     ; delete bullet after hit
     ; remove invader 
@@ -198,16 +225,43 @@ drawInvader proc
 drawInvader endp
 checkForWin proc
     push SI
+    push AX
+    push BX
     push CX
+    push DX
+    ;
+    xor DX, DX
+    mov DL, 2
+    checkRow:
+    mov DI, offset InvaderAlive
+    mov AX, 12
+    mul DL
+    add DI, AX
+    
+    mov CX, 6
+    isAlive:
+    cmp [DI], 1
+    je checkPos
+    add DI, 2
+    loop IsAlive
+    dec DX
+    jmp checkRow
+    checkPos:
+    ;
     mov SI, offset InvadersRowPosY
-    add SI, 6
+    add SI, DX
+    add SI, DX
     mov CX, [SI]
     add CX, InvaderHeight
-    cmp CX, PlayerPosY
+    cmp CX, LinePos
     jl stopCheck
-    mov Playing, 0
+    int 90h
+    ;mov Playing, 0
     stopCheck:
+    pop DX
     pop CX
+    pop BX
+    pop AX
     pop SI
     ret
 checkForWin endp
@@ -216,7 +270,7 @@ printPlayer proc
     push BX
     push CX
     push DX
-    
+    mov AH, 0Ch
     mov CX, PlayerPosX
     mov DX, PlayerPosY
     add DX, PlayerHeight
@@ -483,6 +537,15 @@ drawInvaderLaser proc
     push BX
     push CX
     push DX
+    push SI
+    push DI
+    cmp InvaderShootFrames, 0
+    je drawInvaderFunc
+    dec InvaderShootFrames
+    jmp endF
+    drawInvaderFunc:
+    ;mov InvaderShootFrames, 2 ; ?????????????????????????????????????????????
+    
     xor CX, CX
     xor DX, DX
     mov AH, 0Ch
@@ -492,11 +555,12 @@ drawInvaderLaser proc
     int 10h
     
     
-    mov CX, InvaderLaserPosY
+    mov CX, [DI]
     cmp CX, ScreenHeight
     jl stDr
     mov [SI], -1
     mov [DI], -1
+    
     dec CurrentLasers
     jmp endF 
     stDr:
@@ -507,6 +571,8 @@ drawInvaderLaser proc
     mov DX, [DI]
     int 10h
     endF:
+    pop DI
+    pop SI
     pop DX
     pop CX
     pop BX
@@ -527,7 +593,7 @@ InvaderShoot proc
     je stopInvaderShootF
     mov SI, offset InvaderAlive
     xor CX, CX
-    mov CL,RandomNumber
+    mov CL, RandomNumber
     add SI, CX
     add SI, CX
     cmp [SI], 1
@@ -544,10 +610,10 @@ InvaderShoot proc
     xor CX, CX
     mov CL, MaxLasers
     mov SI, offset InvaderLaserPosX
-    mov DI, offset InvaderLaserPosY
+    mov DI, offset InvaderLaserPosY  
     drInvaders:
    
-    cmp [DI], -1
+    cmp [DI], -1 
     jne  cntC
     add SI, 2
     add DI, 2
@@ -565,9 +631,31 @@ InvaderShoot proc
     pop AX
     ret
 invaderShoot endp
+playerMove proc far
+    pusha
+    push ES
+    push DS
+    push CS
+    call CS:old_9h
+    pop DS
+    pop DS
+    pop ES
+    popa
+   
+    ;jmp cs:old_9h
+    iret
+playerMove endp
 main proc
     mov AX, @data
     mov DS, AX
+    push 0
+    pop es
+
+ 
+    mov word ptr es:[90h * 4], offset interruptHandler
+    mov word ptr es:[90h * 4 + 2], seg interruptHandler
+    
+    
     mov AH, 2Ch
     int 21h
     mov Time, DL
@@ -584,7 +672,24 @@ main proc
     mov AH, 0Ch
     mov DX, PlayerPosY
     mov AL, 0Fh
-  
+    ; handler
+    xor CX, CX
+    
+    ;mov AX, 3509h
+    ;int 21h
+    ;mov word ptr old_9h, BX
+    ;mov word ptr old_9h+2, ES
+    ;mov AX, 2509h
+    ;mov DX, seg playerMove
+    ;mov DS, DX
+    ;mov DX, offset playerMove
+    ;int 21h
+    ;mov DX, PlayerPosY
+    ;mov CX, PlayerPosX
+    ;mov AH, 0Ch
+    ;mov AL, 0Fh
+    
+    ; handler end
     mov CX, PlayerPosX ; CX = x DX = y A AL = color
     back:
     push AX
@@ -593,6 +698,7 @@ main proc
     mov CL, Time
     mov AH, 2Ch
     timer:
+    
     int 21h
     cmp CL, DL ; CLOCK
     je timer
@@ -600,8 +706,8 @@ main proc
     pop CX
     pop DX
     pop AX
-    call printPlayer
-    push AX 
+    
+    push AX
     xor al, al
     mov AH, 1h
     int 16h
@@ -636,24 +742,30 @@ main proc
     cmp AH, 57 ; Space bar check
     jne escCheck
     call Shoot
-    
+
     jmp ef
     escCheck:
     cmp AH, 01 ; ESC check
     jne ef
     jmp stop
     ef:
-   
     pop AX
-    call InvaderShoot
+    
+    call printPlayer
+    ;jmp stop
+    
+    call drawLine
+    ;call InvaderShoot
     call drawBullet
     call MoveInvaders
+    call checkForWin
     cmp Playing, 0
     je stop
     cmp InvadersLeft, 0
     je stop
     jmp back
     stop:
+   
     mov AH, 3
     int 10h
     mov AH, 4ch
